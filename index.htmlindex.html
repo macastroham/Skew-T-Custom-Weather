@@ -4,21 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Regional Micro-Weather Console</title>
-    <!-- Tailwind CSS for modern, zero-config styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Clean scrollbar style for the hourly table */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 3px;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col font-sans">
@@ -31,7 +21,6 @@
                 <h1 class="text-xl font-bold tracking-tight">Regional Micro-Weather Console</h1>
             </div>
             
-            <!-- Regional Profile Selector -->
             <div class="flex gap-2 bg-gray-950 p-1 rounded-lg border border-gray-800">
                 <button id="btn-ga" onclick="switchLocation('GA')" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-blue-600 text-white">
                     Central Georgia
@@ -46,7 +35,7 @@
     <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- LEFT COLUMN: Ground Truth and Forecast (5/12 width) -->
+        <!-- LEFT COLUMN: Ground Truth and Forecast -->
         <section class="lg:col-span-5 flex flex-col gap-6">
             
             <!-- RESERVED SPACE: Ambient Weather WS-2902C Live Station -->
@@ -58,7 +47,6 @@
                 <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Live Backyard Station</h2>
                 <h3 class="text-lg font-semibold text-gray-300 mb-4">Ambient Weather WS-2902C Feed</h3>
                 
-                <!-- Grayed out UI elements showing the future layout -->
                 <div class="grid grid-cols-2 gap-4 opacity-40">
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs text-gray-500 block">Temperature</span>
@@ -77,10 +65,7 @@
                         <span class="text-2xl font-bold text-gray-400">-.-- in</span>
                     </div>
                 </div>
-                
-                <p class="text-xs text-gray-500 mt-4 italic">
-                    * Connection to local station API will be implemented here in a later build.
-                </p>
+                <p class="text-xs text-gray-500 mt-4 italic">* Connection to local station API reserved for later build.</p>
             </div>
 
             <!-- NWS 12-Hour Micro-Forecast -->
@@ -93,7 +78,6 @@
                     <span id="forecast-status" class="text-xs text-gray-500 font-mono">Initializing...</span>
                 </div>
 
-                <!-- Scrollable Table Container -->
                 <div class="overflow-x-auto flex-grow">
                     <table class="w-full text-left">
                         <thead>
@@ -106,14 +90,14 @@
                             </tr>
                         </thead>
                         <tbody id="forecast-body" class="divide-y divide-gray-800/50">
-                            <!-- Populated dynamically via JavaScript -->
+                            <!-- Populated dynamically -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- RIGHT COLUMN: Upper-Air Sounding (7/12 width) -->
+        <!-- RIGHT COLUMN: Upper-Air Sounding -->
         <section class="lg:col-span-7 flex flex-col gap-6">
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col h-full">
                 <div class="mb-4">
@@ -121,66 +105,56 @@
                     <h3 class="text-lg font-semibold" id="sounding-title">Latest Observed Skew-T Sounding</h3>
                 </div>
 
-                <!-- Dynamic Sounding Image Frame -->
                 <div class="bg-gray-950 rounded-lg p-2 border border-gray-800 flex justify-center items-center flex-grow min-h-[450px]">
-                    <img id="sounding-img" 
-                         src="" 
-                         alt="Latest Skew-T Sounding Diagram" 
-                         class="max-h-[600px] w-auto rounded object-contain border border-gray-800 shadow-md">
+                    <img id="sounding-img" src="" alt="Latest Skew-T Sounding Diagram" class="max-h-[600px] w-auto rounded object-contain border border-gray-800 shadow-md">
                 </div>
 
-                <!-- Micro-Meteorology Helper Guide -->
                 <div class="mt-4 p-4 bg-gray-950 rounded-lg border border-gray-800 text-xs text-gray-400 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <h4 class="font-bold text-gray-300 mb-1">For Skydiving (Vertical Winds)</h4>
-                        <p>Track the wind barbs along the right margin of the chart to observe wind shear. Rapid direction changes can indicate turbulence and impact jump drift calculations.</p>
+                        <p>Track the wind barbs along the right margin of the chart to observe wind shear. Rapid direction changes indicate vertical boundary layers affecting canopy drift.</p>
                     </div>
                     <div>
                         <h4 class="font-bold text-gray-300 mb-1">For Heat Stability (Convective Energy)</h4>
-                        <p>Look at the CAPE (Convective Available Potential Energy) values on the chart. Values above 1500 J/kg indicate high instability, suggesting strong pop-up thermal activity.</p>
+                        <p>Monitor the calculated CAPE values on the panel. Values exceeding 1500 J/kg imply significant thermal buoyancy and rapid cloud vertical development.</p>
                     </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Footer Status -->
     <footer class="bg-gray-900 border-t border-gray-800 p-4 text-center text-xs text-gray-500">
-        All sounding images are fetched in real-time from the NOAA Storm Prediction Center. All forecast data is sourced from the NWS API.
+        Data pipelines interface directly with NOAA Storm Prediction Center directories and public NWS grid endpoints.
     </footer>
 
-    <!-- Application Controller Logic -->
     <script>
-        // Configuration for localized areas
-        const locations = {
+        var locations = {
             GA: {
-                name: "Central Georgia",
+                name: 'Central Georgia',
                 lat: 33.30, 
                 lon: -84.55,
-                soundingStation: "FFC", // Peachtree City NWS Balloon Site
-                title: "Latest Atlanta/Peachtree City (FFC) Sounding"
+                soundingStation: 'FFC',
+                title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
-                name: "Dallas-Fort Worth",
+                name: 'Dallas-Fort Worth',
                 lat: 32.7767,
                 lon: -96.7970,
-                soundingStation: "FWD", // Fort Worth NWS Balloon Site
-                title: "Latest Fort Worth (FWD) Sounding"
+                soundingStation: 'FWD',
+                title: 'Latest Fort Worth (FWD) Sounding'
             }
         };
 
         let currentActive = 'GA';
 
-        // Initialize the app on load
         window.onload = function() {
             switchLocation(currentActive);
         };
 
-        async function switchLocation(locKey) {
+        function switchLocation(locKey) {
             currentActive = locKey;
-            const config = locations[locKey];
+            var config = locations[locKey];
 
-            // Update Header Tab styling
             document.getElementById('btn-ga').className = locKey === 'GA' 
                 ? 'px-4 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white transition-all'
                 : 'px-4 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all';
@@ -189,81 +163,70 @@
                 ? 'px-4 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white transition-all'
                 : 'px-4 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all';
 
-            // Update Sounding Image and Title
             document.getElementById('sounding-title').textContent = config.title;
-            // Direct hotlink to NOAA SPC's latest auto-generated sounding image
-            document.getElementById('sounding-img').src = `https://www.spc.noaa.gov/exper/soundings/LATEST/${config.soundingStation}.gif`;
+            document.getElementById('sounding-img').src = 'https://www.spc.noaa.gov/exper/soundings/LATEST/' + config.soundingStation + '.gif';
 
-            // Load live weather from NWS API
-            await fetchNWSForecast(config.lat, config.lon);
+            fetchNWSForecast(config.lat, config.lon);
         }
 
-        async function fetchNWSForecast(lat, lon) {
-            const statusEl = document.getElementById('forecast-status');
-            const tbody = document.getElementById('forecast-body');
+        function fetchNWSForecast(lat, lon) {
+            var statusEl = document.getElementById('forecast-status');
+            var tbody = document.getElementById('forecast-body');
             
-            statusEl.textContent = "Connecting to NWS...";
-            tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-sm text-gray-500">Requesting coordinates...</td></tr>`;
+            statusEl.textContent = 'Connecting...';
+            tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-sm text-gray-500">Locating grid coordinates...</td></tr>';
 
-            try {
-                // Step 1: Query the coordinate endpoint to find the localized grid point
-                const pointsResponse = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
-                if (!pointsResponse.ok) throw new Error("Coordinate lookup failed.");
-                const pointsData = await pointsResponse.json();
-
-                // Extract the specific hourly forecast URL
-                const hourlyForecastUrl = pointsData.properties.forecastHourly;
-
-                // Step 2: Fetch the actual hourly weather data
-                statusEl.textContent = "Retrieving hourly grids...";
-                const forecastResponse = await fetch(hourlyForecastUrl);
-                if (!forecastResponse.ok) throw new Error("Hourly data retrieval failed.");
-                const forecastData = await forecastResponse.json();
-
-                // Render the table
-                statusEl.textContent = "Data Active";
-                renderForecast(forecastData.properties.periods);
-                
-            } catch (error) {
-                statusEl.textContent = "API Error";
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-8 text-center text-sm text-red-400">
-                            Failed to load weather data: ${error.message}
-                        </td>
-                    </tr>`;
-                console.error(error);
-            }
+            fetch('https://api.weather.gov/points/' + lat + ',' + lon)
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Grid resolution failed.');
+                    return res.json();
+                })
+                .then(function(pointsData) {
+                    var hourlyForecastUrl = pointsData.properties.forecastHourly;
+                    statusEl.textContent = 'Parsing...';
+                    return fetch(hourlyForecastUrl);
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Hourly data denied.');
+                    return res.json();
+                })
+                .then(function(forecastData) {
+                    statusEl.textContent = 'Data Active';
+                    renderForecast(forecastData.properties.periods);
+                })
+                .catch(function(error) {
+                    statusEl.textContent = 'Offline';
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-sm text-red-400">NWS Endpoint Error: ' + error.message + '</td></tr>';
+                });
         }
 
         function renderForecast(periods) {
-            const tbody = document.getElementById('forecast-body');
+            var tbody = document.getElementById('forecast-body');
             tbody.innerHTML = '';
 
-            // Slice out the next 12 hours for a clean, scannable layout
-            const next12Hours = periods.slice(0, 12);
+            var next12Hours = periods.slice(0, 12);
 
-            next12Hours.forEach(period => {
-                const time = new Date(period.startTime).toLocaleTimeString([], { hour: 'numeric', hour12: true });
-                const temp = `${period.temperature}°${period.temperatureUnit}`;
-                const wind = `${period.windSpeed} ${period.windDirection}`;
-                const precip = period.probabilityOfPrecipitation?.value 
-                    ? `${period.probabilityOfPrecipitation.value}%` 
+            next12Hours.forEach(function(period) {
+                var time = new Date(period.startTime).toLocaleTimeString([], { hour: 'numeric', hour12: true });
+                var temp = period.temperature + '°' + period.temperatureUnit;
+                var wind = period.windSpeed + ' ' + period.windDirection;
+                var precip = (period.probabilityOfPrecipitation && period.probabilityOfPrecipitation.value)
+                    ? period.probabilityOfPrecipitation.value + '%' 
                     : '0%';
                 
-                const row = document.createElement('tr');
-                row.className = "border-b border-gray-800/40 hover:bg-gray-800/20 transition-colors";
-                row.innerHTML = `
-                    <td class="py-3 text-xs font-semibold text-gray-300">${time}</td>
-                    <td class="py-3 text-xs text-gray-400 max-w-[120px] truncate" title="${period.shortForecast}">${period.shortForecast}</td>
-                    <td class="py-3 text-xs font-bold text-orange-400 text-right">${temp}</td>
-                    <td class="py-3 text-xs text-gray-300 text-right font-mono">${wind}</td>
-                    <td class="py-3 text-xs text-blue-400 text-right">${precip}</td>
-                `;
+                var row = document.createElement('tr');
+                row.className = 'border-b border-gray-800/40 hover:bg-gray-800/20 transition-colors';
+                
+                row.innerHTML = 
+                    '<td class="py-3 text-xs font-semibold text-gray-300">' + time + '</td>' +
+                    '<td class="py-3 text-xs text-gray-400 max-w-[120px] truncate" title="' + period.shortForecast + '">' + period.shortForecast + '</td>' +
+                    '<td class="py-3 text-xs font-bold text-orange-400 text-right">' + temp + '</td>' +
+                    '<td class="py-3 text-xs text-gray-300 text-right font-mono">' + wind + '</td>' +
+                    '<td class="py-3 text-xs text-blue-400 text-right">' + precip + '</td>';
+                
                 tbody.appendChild(row);
             });
         }
     </script>
 </body>
 </html>
-<!--Rebuild-->
