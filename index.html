@@ -26,7 +26,7 @@
                     Central Georgia
                 </button>
                 <button id="btn-dfw" onclick="switchLocation('DFW')" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">
-                    Dallas-Fort Worth
+                    Venus, TX
                 </button>
                 <button id="btn-arv" onclick="switchLocation('ARV')" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">
                     Arvada, CO
@@ -41,7 +41,7 @@
         <!-- LEFT COLUMN: Ground Truth and Forecast -->
         <section class="lg:col-span-5 flex flex-col gap-6">
             
-            <!-- NWS Live METAR Observations (Replaces Station Placeholder) -->
+            <!-- Optimized Real-Time Weather Station Grid -->
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
                 <div class="absolute top-0 right-0 bg-blue-900/30 text-blue-400 text-[10px] font-mono px-3 py-1 rounded-bl-lg border-l border-b border-gray-800 tracking-wider">
                     LIVE METAR
@@ -50,14 +50,14 @@
                 <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Local Ground Truth</h2>
                 <h3 id="obs-station-label" class="text-lg font-semibold text-gray-300 mb-4 font-mono">Initializing Feed...</h3>
                 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs text-gray-500 block">Temperature</span>
                         <span id="obs-temp" class="text-2xl font-bold text-emerald-400">--.-°F</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs text-gray-500 block">Wind Velocity</span>
-                        <span id="obs-wind" class="text-lg font-bold text-gray-300 font-mono">-- mph</span>
+                        <span id="obs-wind" class="text-base font-bold text-gray-300 font-mono">-- mph</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs text-gray-500 block">Relative Humidity</span>
@@ -65,7 +65,16 @@
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs text-gray-500 block">Barometric Pressure</span>
-                        <span id="obs-pressure" class="text-lg font-bold text-orange-400 font-mono">--.-- inHg</span>
+                        <span id="obs-pressure" class="text-base font-bold text-orange-400 font-mono">--.-- inHg</span>
+                    </div>
+                    <!-- Thermal Comfort Additions -->
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-amber-900/40">
+                        <span class="text-xs text-amber-500 block font-medium">Heat Index</span>
+                        <span id="obs-heatindex" class="text-2xl font-bold text-amber-400">--.-°F</span>
+                    </div>
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-red-900/40">
+                        <span class="text-xs text-red-500 block font-medium">Wet Bulb Temp</span>
+                        <span id="obs-wetbulb" class="text-2xl font-bold text-red-400">--.-°F</span>
                     </div>
                 </div>
             </div>
@@ -133,18 +142,18 @@
         var locations = {
             GA: {
                 name: 'Central Georgia',
-                lat: 33.30, 
-                lon: -84.55,
+                lat: 32.5183, 
+                lon: -83.7716,
                 soundingStation: 'FFC',
-                station: 'KFFC',
+                station: '48A',
                 title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
-                name: 'Dallas-Fort Worth',
-                lat: 32.7767,
-                lon: -96.7970,
+                name: 'Venus, TX',
+                lat: 32.4332,
+                lon: -97.1020,
                 soundingStation: 'FWD',
-                station: 'KDAL',
+                station: 'KJWY',
                 title: 'Latest Fort Worth (FWD) Sounding'
             },
             ARV: {
@@ -167,7 +176,6 @@
             currentActive = locKey;
             var config = locations[locKey];
 
-            // Clean button styling transition loop
             ['GA', 'DFW', 'ARV'].forEach(function(key) {
                 var btn = document.getElementById('btn-' + key.toLowerCase());
                 if (btn) {
@@ -184,18 +192,27 @@
             fetchCurrentObservations(config.station);
         }
 
+        // Roland Stull equation for highly accurate Wet Bulb calculation via raw metric inputs
+        function calculateWetBulb(tc, rh) {
+            var tw = tc * Math.atan(0.151977 * Math.pow(rh + 8.313659, 0.5)) 
+                   + Math.atan(tc + rh) 
+                   - Math.atan(rh - 1.676331) 
+                   + 0.00391838 * Math.pow(rh, 1.5) * Math.atan(0.023101 * rh) 
+                   - 4.686035;
+            return (tw * 9/5) + 32;
+        }
+
         function fetchCurrentObservations(stationId) {
             var tempEl = document.getElementById('obs-temp');
             var windEl = document.getElementById('obs-wind');
             var humidEl = document.getElementById('obs-humidity');
             var pressEl = document.getElementById('obs-pressure');
+            var hiEl = document.getElementById('obs-heatindex');
+            var wbEl = document.getElementById('obs-wetbulb');
+            
             document.getElementById('obs-station-label').textContent = 'Station ' + stationId + ' Data';
 
-            // Reset UI states
-            tempEl.textContent = '--.-°F';
-            windEl.textContent = '-- mph';
-            humidEl.textContent = '--%';
-            pressEl.textContent = '--.-- inHg';
+            [tempEl, windEl, humidEl, pressEl, hiEl, wbEl].forEach(el => el.textContent = '--');
 
             fetch('https://api.weather.gov/stations/' + stationId + '/observations/latest')
                 .then(function(res) {
@@ -204,16 +221,19 @@
                 })
                 .then(function(data) {
                     var props = data.properties;
+                    var tc = null;
+                    var rh = null;
 
-                    // Temp Conversion (C to F)
+                    // Temperature Processing
                     if (props.temperature && props.temperature.value !== null) {
-                        var f = (props.temperature.value * 9/5) + 32;
+                        tc = props.temperature.value;
+                        var f = (tc * 9/5) + 32;
                         tempEl.textContent = f.toFixed(1) + '°F';
                     } else {
                         tempEl.textContent = 'N/A';
                     }
 
-                    // Wind Velocity Conversion (km/h to mph + Compass Direction)
+                    // Wind Processing
                     if (props.windSpeed && props.windSpeed.value !== null) {
                         var mph = props.windSpeed.value * 0.621371;
                         var windStr = mph.toFixed(0) + ' mph';
@@ -225,27 +245,44 @@
                         windEl.textContent = 'Calm';
                     }
 
-                    // Relative Humidity
+                    // Humidity Processing
                     if (props.relativeHumidity && props.relativeHumidity.value !== null) {
-                        humidEl.textContent = props.relativeHumidity.value.toFixed(0) + '%';
+                        rh = props.relativeHumidity.value;
+                        humidEl.textContent = rh.toFixed(0) + '%';
                     } else {
                         humidEl.textContent = 'N/A';
                     }
 
-                    // Barometric Pressure Conversion (Pascals to inHg)
+                    // Pressure Processing
                     if (props.barometricPressure && props.barometricPressure.value !== null) {
                         var inHg = props.barometricPressure.value * 0.0002953;
                         pressEl.textContent = inHg.toFixed(2) + ' inHg';
                     } else {
                         pressEl.textContent = 'N/A';
                     }
+
+                    // Real-Time Native Heat Index Parsing
+                    if (props.heatIndex && props.heatIndex.value !== null) {
+                        var hiF = (props.heatIndex.value * 9/5) + 32;
+                        hiEl.textContent = hiF.toFixed(1) + '°F';
+                    } else if (tc !== null) {
+                        var currentF = (tc * 9/5) + 32;
+                        hiEl.textContent = currentF > 80 ? 'Calculating...' : 'Normal';
+                    } else {
+                        hiEl.textContent = 'N/A';
+                    }
+
+                    // Real-Time Wet Bulb Execution
+                    if (tc !== null && rh !== null) {
+                        var calculatedWB = calculateWetBulb(tc, rh);
+                        wbEl.textContent = calculatedWB.toFixed(1) + '°F';
+                    } else {
+                        wbEl.textContent = 'N/A';
+                    }
                 })
                 .catch(function(err) {
                     console.log('Observation fetch error:', err);
-                    tempEl.textContent = 'Offline';
-                    windEl.textContent = 'Offline';
-                    humidEl.textContent = 'Offline';
-                    pressEl.textContent = 'Offline';
+                    [tempEl, windEl, humidEl, pressEl, hiEl, wbEl].forEach(el => el.textContent = 'Offline');
                 });
         }
 
