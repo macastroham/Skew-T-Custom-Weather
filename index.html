@@ -17,7 +17,7 @@
     <header class="bg-gray-900 border-b border-gray-800 p-4 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                <div id="status-indicator" class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
                 <h1 class="text-xl font-bold tracking-tight">Regional Micro-Weather Console</h1>
             </div>
             
@@ -34,6 +34,25 @@
             </div>
         </div>
     </header>
+
+    <!-- High-Visibility Emergency Management Alert Banner -->
+    <div id="alert-zone" class="max-w-7xl w-full mx-auto px-4 lg:px-6 pt-4 hidden">
+        <div id="alert-banner" onclick="toggleAlertDetails()" class="cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-3 w-3 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                    </span>
+                    <span id="alert-title" class="font-bold tracking-wide text-sm sm:text-base uppercase"></span>
+                </div>
+                <span class="text-xs underline bg-black/20 px-2 py-1 rounded font-mono font-medium">Toggle Details</span>
+            </div>
+            <div id="alert-details" class="hidden mt-2 pt-3 border-t border-white/20 text-xs sm:text-sm font-mono leading-relaxed max-h-[250px] overflow-y-auto whitespace-pre-wrap bg-black/30 p-3 rounded-lg">
+                <!-- Detailed NWS text map coordinates dump -->
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -87,7 +106,7 @@
                         </div>
                     </div>
 
-                    <!-- Aviation & Unmanned Performance Cards -->
+                    <!-- Aviation Altimetry Cards -->
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-blue-900/20 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-blue-400 block font-medium">Pressure Altitude</span>
                         <span id="obs-pa" class="text-xl font-bold text-blue-300 font-mono">---- ft</span>
@@ -99,6 +118,26 @@
                         <div id="obs-da-delta">
                             <span class="text-[10px] text-gray-600 font-mono block">O₂ Profile</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Strategic Tactical Convective Warning Block -->
+                <div id="lightning-card" class="mt-4 bg-gray-950 p-4 rounded-lg border border-gray-800 flex items-center justify-between transition-all duration-300">
+                    <div class="flex items-center gap-3">
+                        <div id="lightning-icon-box" class="p-2.5 rounded-lg bg-gray-900 text-gray-600">
+                            <!-- SVG Lightning Vector -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                                <path d="M19 11h-6V3l-7 10h6v8l7-10z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-500 block font-medium uppercase tracking-wider">Tactical Convective Guard</span>
+                            <span id="lightning-status" class="text-sm font-bold text-gray-400 font-mono">No Strikes Logged</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="lightning-timer" class="text-xs font-mono font-bold text-gray-600 block">System Armed</span>
+                        <span id="lightning-range" class="text-[10px] text-gray-600 font-mono block">METAR Text Stream</span>
                     </div>
                 </div>
             </div>
@@ -169,8 +208,8 @@
                 lat: 32.6405, 
                 lon: -83.5925,
                 soundingStation: 'FFC',
-                station: 'KWRB', // Robins AFB
-                elevation: 294, // True survey elevation in feet
+                station: 'KWRB',
+                elevation: 294,
                 title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
@@ -178,8 +217,8 @@
                 lat: 32.4332,
                 lon: -97.1020,
                 soundingStation: 'FWD',
-                station: 'KJWY', // Mid-Way Regional
-                elevation: 727, // True survey elevation in feet
+                station: 'KJWY',
+                elevation: 727,
                 title: 'Latest Fort Worth (FWD) Sounding'
             },
             ARV: {
@@ -187,16 +226,25 @@
                 lat: 39.8028,
                 lon: -105.0875,
                 soundingStation: 'DNR',
-                station: 'KBJC', // Rocky Mountain Metro
-                elevation: 5673, // True survey elevation in feet
+                station: 'KBJC',
+                elevation: 5673,
                 title: 'Latest Denver (DNR) Sounding'
             }
+        };
+
+        // State Machine to handle independent lightning tracking arrays
+        let lightningMemory = {
+            GA: { lastTimestamp: null, range: '', type: '' },
+            DFW: { lastTimestamp: null, range: '', type: '' },
+            ARV: { lastTimestamp: null, range: '', type: '' }
         };
 
         let currentActive = 'GA';
 
         window.onload = function() {
             switchLocation(currentActive);
+            // Run high-precision UI refresh loop for safety countdowns
+            setInterval(updateLightningCountdownUI, 1000);
         };
 
         function switchLocation(locKey) {
@@ -215,8 +263,52 @@
             document.getElementById('sounding-title').textContent = config.title;
             document.getElementById('sounding-img').src = 'https://www.spc.noaa.gov/exper/soundings/LATEST/' + config.soundingStation + '.gif';
 
+            // Collapse details pane upon switching regional cards
+            document.getElementById('alert-details').classList.add('hidden');
+
             fetchNWSForecast(config.lat, config.lon);
             fetchCurrentObservations(config.station, config);
+            fetchNWSAlerts(config.lat, config.lon);
+            updateLightningCountdownUI(); 
+        }
+
+        function fetchNWSAlerts(lat, lon) {
+            var zoneEl = document.getElementById('alert-zone');
+            var bannerEl = document.getElementById('alert-banner');
+            var titleEl = document.getElementById('alert-title');
+            var detailsEl = document.getElementById('alert-details');
+
+            fetch('https://api.weather.gov/alerts/active?point=' + lat + ',' + lon)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.features && data.features.length > 0) {
+                        // Sort priorities: look for direct warnings first
+                        var primaryAlert = data.features.find(f => f.properties.severity === 'Extreme' || f.properties.severity === 'Severe') || data.features[0];
+                        var props = primaryAlert.properties;
+                        
+                        zoneEl.classList.remove('hidden');
+                        titleEl.textContent = props.event;
+                        detailsEl.textContent = props.description || "No specific briefing text supplied by weather office.";
+
+                        // Tactical color-coding assignment
+                        if (props.severity === 'Extreme' || props.severity === 'Severe' || props.event.toLowerCase().includes('warning')) {
+                            bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-red-950 border-red-700 text-red-200 hover:bg-red-900";
+                        } else {
+                            bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-amber-950 border-amber-700 text-amber-200 hover:bg-amber-900";
+                        }
+                    } else {
+                        zoneEl.classList.add('hidden');
+                    }
+                })
+                .catch(err => {
+                    console.log('Alert extraction error:', err);
+                    zoneEl.classList.add('hidden');
+                });
+        }
+
+        function toggleAlertDetails() {
+            var detailsEl = document.getElementById('alert-details');
+            detailsEl.classList.toggle('hidden');
         }
 
         function fetchCurrentObservations(stationId, config) {
@@ -230,14 +322,10 @@
             
             document.getElementById('obs-station-label').textContent = 'Station ' + stationId + ' Data';
             [tempEl, windEl, humidEl, pressEl, paEl, daEl].forEach(el => el.textContent = '--');
-            daDeltaEl.innerHTML = '<span class="text-[10px] text-gray-600 font-mono">Calculating...</span>';
 
             fetch('https://api.weather.gov/stations/' + stationId + '/observations/latest')
-                .then(function(res) {
-                    if (!res.ok) throw new Error('Observation unavailable.');
-                    return res.json();
-                })
-                .then(function(data) {
+                .then(res => res.json())
+                .then(data => {
                     var props = data.properties;
                     var tempF = null;
                     var altimeterInHg = null;
@@ -275,14 +363,10 @@
 
                     // Aviation Aerodynamic Computation Core
                     if (tempF !== null && altimeterInHg !== null) {
-                        // Pressure Altitude calculation
                         var pa = (29.92 - altimeterInHg) * 1000 + config.elevation;
                         paEl.textContent = Math.round(pa).toLocaleString() + ' ft';
 
-                        // ISA Temperature at field elevation
                         var isaTempF = 59 - (3.57 * (config.elevation / 1000));
-                        
-                        // Density Altitude calculation corrected for non-standard temperature dev
                         var da = pa + 118.8 * (tempF - isaTempF);
                         daEl.textContent = Math.round(da).toLocaleString() + ' ft';
 
@@ -297,12 +381,90 @@
                         daEl.textContent = 'N/A';
                         daDeltaEl.innerHTML = '<span class="text-gray-600 text-[10px]">Missing Alt Metrics</span>';
                     }
+
+                    // Extract and parse raw aviation METAR strings for electrostatic activity
+                    parseLightningFromMetar(props.rawMessage, currentActive);
                 })
-                .catch(function(err) {
+                .catch(err => {
                     console.log('Observation fetch error:', err);
                     [tempEl, windEl, humidEl, pressEl, paEl, daEl].forEach(el => el.textContent = 'Offline');
-                    daDeltaEl.innerHTML = '<span class="text-red-500 text-[10px]">Offline</span>';
                 });
+        }
+
+        function parseLightningFromMetar(rawMessage, locKey) {
+            if (!rawMessage) return;
+            var text = rawMessage.toUpperCase();
+            var now = new Date().getTime();
+
+            // Match structural boundary conditions for aviation weather codes
+            var hasDirectTS = /\bTS\b/.test(text) || text.includes("TSRA") || text.includes("TSGR") || text.includes("TSBR");
+            var hasVicinityTS = text.includes("VCTS");
+            var hasDistantLtg = text.includes("LTG DSNT") || text.includes("DSNT LTG") || text.includes("DSNT TS");
+
+            if (hasDirectTS) {
+                lightningMemory[locKey] = { lastTimestamp: now, range: '0 - 5 mi', type: 'CRITICAL STRIKE' };
+            } else if (hasVicinityTS) {
+                lightningMemory[locKey] = { lastTimestamp: now, range: '5 - 10 mi', type: 'VICINITY ACTIVITY' };
+            } else if (hasDistantLtg) {
+                lightningMemory[locKey] = { lastTimestamp: now, range: '10 - 30 mi', type: 'DISTANT CELL' };
+            }
+        }
+
+        function updateLightningCountdownUI() {
+            var state = lightningMemory[currentActive];
+            var card = document.getElementById('lightning-card');
+            var iconBox = document.getElementById('lightning-icon-box');
+            var statusEl = document.getElementById('lightning-status');
+            var timerEl = document.getElementById('lightning-timer');
+            var rangeEl = document.getElementById('lightning-range');
+
+            if (!state || !state.lastTimestamp) {
+                card.className = "mt-4 bg-gray-950 p-4 rounded-lg border border-gray-800 flex items-center justify-between transition-all duration-300";
+                iconBox.className = "p-2.5 rounded-lg bg-gray-900 text-gray-700";
+                statusEl.textContent = "No Strikes Logged";
+                statusEl.className = "text-sm font-bold text-gray-500 font-mono";
+                timerEl.textContent = "System Armed";
+                timerEl.className = "text-xs font-mono font-bold text-gray-600 block";
+                rangeEl.textContent = "METAR Text Stream";
+                return;
+            }
+
+            var now = new Date().getTime();
+            var diffSeconds = Math.floor((now - state.lastTimestamp) / 1000);
+            var totalWindow = 15 * 60; // 15 Minute standard safety hold down
+            var remaining = totalWindow - diffSeconds;
+
+            if (remaining > 0) {
+                var m = Math.floor(remaining / 60);
+                var s = remaining % 60;
+                var countdownStr = m + ":" + (s < 10 ? "0" : "") + s;
+
+                timerEl.textContent = "HOLD: " + countdownStr;
+                rangeEl.textContent = "Radius: " + state.range;
+
+                if (state.type === 'CRITICAL STRIKE') {
+                    card.className = "mt-4 bg-red-950/40 p-4 rounded-lg border border-red-700 flex items-center justify-between transition-all duration-300 animate-pulse";
+                    iconBox.className = "p-2.5 rounded-lg bg-red-900 text-amber-400";
+                    statusEl.textContent = state.type;
+                    statusEl.className = "text-sm font-bold text-red-400 font-mono";
+                    timerEl.className = "text-xs font-mono font-bold text-red-400 block";
+                } else if (state.type === 'VICINITY ACTIVITY') {
+                    card.className = "mt-4 bg-amber-950/30 p-4 rounded-lg border border-amber-700 flex items-center justify-between transition-all duration-300";
+                    iconBox.className = "p-2.5 rounded-lg bg-amber-900 text-amber-300";
+                    statusEl.textContent = state.type;
+                    statusEl.className = "text-sm font-bold text-amber-400 font-mono";
+                    timerEl.className = "text-xs font-mono font-bold text-amber-400 block";
+                } else {
+                    card.className = "mt-4 bg-gray-900 p-4 rounded-lg border border-yellow-800/60 flex items-center justify-between transition-all duration-300";
+                    iconBox.className = "p-2.5 rounded-lg bg-gray-950 text-yellow-600";
+                    statusEl.textContent = state.type;
+                    statusEl.className = "text-sm font-bold text-yellow-500 font-mono";
+                    timerEl.className = "text-xs font-mono font-bold text-yellow-500 block";
+                }
+            } else {
+                // Clear state memory safely when crossing past 15 min threshold
+                lightningMemory[currentActive] = { lastTimestamp: null, range: '', type: '' };
+            }
         }
 
         function calculateWetBulb(tc, rh) {
@@ -324,11 +486,11 @@
             flagContainer.innerHTML = '<span class="text-[10px] text-gray-500 font-mono">Syncing...</span>';
 
             fetch(gridUrl)
-                .then(function(res) {
+                .then(res => {
                     if (!res.ok) throw new Error('Grid down.');
                     return res.json();
                 })
-                .then(function(data) {
+                .then(data => {
                     var props = data.properties;
                     var now = new Date();
 
@@ -358,7 +520,7 @@
                         }
                     }
                 })
-                .catch(function(err) {
+                .catch(err => {
                     console.log('Grid thermal fetch error:', err);
                     hiEl.textContent = 'Offline';
                     wbEl.textContent = 'Offline';
@@ -445,11 +607,11 @@
             tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-sm text-gray-500">Locating grid coordinates...</td></tr>';
 
             fetch('https://api.weather.gov/points/' + lat + ',' + lon)
-                .then(function(res) {
+                .then(res => {
                     if (!res.ok) throw new Error('Grid resolution failed.');
                     return res.json();
                 })
-                .then(function(pointsData) {
+                .then(pointsData) {
                     var hourlyForecastUrl = pointsData.properties.forecastHourly;
                     var gridDataUrl = pointsData.properties.forecastGridData;
                     
@@ -458,15 +620,15 @@
                     fetchGridThermalMetrics(gridDataUrl);
                     return fetch(hourlyForecastUrl);
                 })
-                .then(function(res) {
+                .then(res => {
                     if (!res.ok) throw new Error('Hourly data denied.');
                     return res.json();
                 })
-                .then(function(forecastData) {
+                .then(forecastData) {
                     statusEl.textContent = 'Data Active';
                     renderForecast(forecastData.properties.periods);
                 })
-                .catch(function(error) {
+                .catch(error => {
                     statusEl.textContent = 'Offline';
                     tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-sm text-red-400">NWS Endpoint Error: ' + error.message + '</td></tr>';
                 });
@@ -478,7 +640,7 @@
 
             var next12Hours = periods.slice(0, 12);
 
-            next12Hours.forEach(function(period) {
+            next12Hours.forEach(period => {
                 var time = new Date(period.startTime).toLocaleTimeString([], { hour: 'numeric', hour12: true });
                 var temp = period.temperature + '°' + period.temperatureUnit;
                 var wind = period.windSpeed + ' ' + period.windDirection;
