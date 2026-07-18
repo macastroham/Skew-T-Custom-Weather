@@ -41,7 +41,7 @@
         <!-- LEFT COLUMN: Ground Truth and Forecast -->
         <section class="lg:col-span-5 flex flex-col gap-6">
             
-            <!-- Optimized Weather Station & Resilient Geospatial Thermal Grid -->
+            <!-- Optimized Weather Station & Integrated Aviation Performance Array -->
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
                 <div class="absolute top-0 right-0 bg-blue-900/30 text-blue-400 text-[10px] font-mono px-3 py-1 rounded-bl-lg border-l border-b border-gray-800 tracking-wider">
                     LIVE DATA
@@ -50,38 +50,54 @@
                 <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Local Ground Truth</h2>
                 <h3 id="obs-station-label" class="text-lg font-semibold text-gray-300 mb-4 font-mono">Initializing Feed...</h3>
                 
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Core Atmospheric Metrics -->
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Temperature</span>
-                        <span id="obs-temp" class="text-2xl font-bold text-emerald-400">--.-°F</span>
+                        <span id="obs-temp" class="text-xl font-bold text-emerald-400">--.-°F</span>
                         <span class="text-[10px] text-gray-600 font-mono">Air Sensor</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Wind Velocity</span>
-                        <span id="obs-wind" class="text-base font-bold text-gray-300 font-mono">-- mph</span>
+                        <span id="obs-wind" class="text-sm font-bold text-gray-300 font-mono">-- mph</span>
                         <span class="text-[10px] text-gray-600 font-mono">Surface</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Relative Humidity</span>
-                        <span id="obs-humidity" class="text-2xl font-bold text-blue-400">--%</span>
+                        <span id="obs-humidity" class="text-xl font-bold text-blue-400">--%</span>
                         <span class="text-[10px] text-gray-600 font-mono">Moisture</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Barometric Pressure</span>
-                        <span id="obs-pressure" class="text-base font-bold text-orange-400 font-mono">--.-- inHg</span>
+                        <span id="obs-pressure" class="text-sm font-bold text-orange-400 font-mono">--.-- inHg</span>
                         <span class="text-[10px] text-gray-600 font-mono">Altimeter</span>
                     </div>
-                    <!-- Thermal Comfort: Powered Safely by NWS Geospatial Grid Arrays -->
+
+                    <!-- Thermodynamic Stress Matrix -->
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-amber-900/30 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-amber-500 block font-medium">Heat Index</span>
-                        <span id="obs-heatindex" class="text-2xl font-bold text-amber-400">--.-°F</span>
+                        <span id="obs-heatindex" class="text-xl font-bold text-amber-400">--.-°F</span>
                         <span class="text-[10px] text-amber-600/70 font-mono">NWS Geo-Grid</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-red-900/30 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-red-500 block font-medium">Wet Bulb / WBGT</span>
-                        <span id="obs-wetbulb" class="text-2xl font-bold text-red-400">--.-°F</span>
+                        <span id="obs-wetbulb" class="text-xl font-bold text-red-400">--.-°F</span>
                         <div id="wbgt-flag-container">
                             <span class="text-[10px] text-gray-600 font-mono block">Pending...</span>
+                        </div>
+                    </div>
+
+                    <!-- Aviation & Unmanned Performance Cards -->
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-blue-900/20 flex flex-col justify-between min-h-[90px]">
+                        <span class="text-xs text-blue-400 block font-medium">Pressure Altitude</span>
+                        <span id="obs-pa" class="text-xl font-bold text-blue-300 font-mono">---- ft</span>
+                        <span class="text-[10px] text-gray-600 font-mono">Standard Datum</span>
+                    </div>
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-purple-900/20 flex flex-col justify-between min-h-[90px]">
+                        <span class="text-xs text-purple-400 block font-medium">Density Altitude</span>
+                        <span id="obs-da" class="text-xl font-bold text-purple-400 font-mono">---- ft</span>
+                        <div id="obs-da-delta">
+                            <span class="text-[10px] text-gray-600 font-mono block">O₂ Profile</span>
                         </div>
                     </div>
                 </div>
@@ -153,7 +169,8 @@
                 lat: 32.6405, 
                 lon: -83.5925,
                 soundingStation: 'FFC',
-                station: 'KWRB',
+                station: 'KWRB', // Robins AFB
+                elevation: 294, // True survey elevation in feet
                 title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
@@ -161,7 +178,8 @@
                 lat: 32.4332,
                 lon: -97.1020,
                 soundingStation: 'FWD',
-                station: 'KJWY',
+                station: 'KJWY', // Mid-Way Regional
+                elevation: 727, // True survey elevation in feet
                 title: 'Latest Fort Worth (FWD) Sounding'
             },
             ARV: {
@@ -169,7 +187,8 @@
                 lat: 39.8028,
                 lon: -105.0875,
                 soundingStation: 'DNR',
-                station: 'KBJC',
+                station: 'KBJC', // Rocky Mountain Metro
+                elevation: 5673, // True survey elevation in feet
                 title: 'Latest Denver (DNR) Sounding'
             }
         };
@@ -197,17 +216,21 @@
             document.getElementById('sounding-img').src = 'https://www.spc.noaa.gov/exper/soundings/LATEST/' + config.soundingStation + '.gif';
 
             fetchNWSForecast(config.lat, config.lon);
-            fetchCurrentObservations(config.station);
+            fetchCurrentObservations(config.station, config);
         }
 
-        function fetchCurrentObservations(stationId) {
+        function fetchCurrentObservations(stationId, config) {
             var tempEl = document.getElementById('obs-temp');
             var windEl = document.getElementById('obs-wind');
             var humidEl = document.getElementById('obs-humidity');
             var pressEl = document.getElementById('obs-pressure');
+            var paEl = document.getElementById('obs-pa');
+            var daEl = document.getElementById('obs-da');
+            var daDeltaEl = document.getElementById('obs-da-delta');
             
             document.getElementById('obs-station-label').textContent = 'Station ' + stationId + ' Data';
-            [tempEl, windEl, humidEl, pressEl].forEach(el => el.textContent = '--');
+            [tempEl, windEl, humidEl, pressEl, paEl, daEl].forEach(el => el.textContent = '--');
+            daDeltaEl.innerHTML = '<span class="text-[10px] text-gray-600 font-mono">Calculating...</span>';
 
             fetch('https://api.weather.gov/stations/' + stationId + '/observations/latest')
                 .then(function(res) {
@@ -216,10 +239,12 @@
                 })
                 .then(function(data) {
                     var props = data.properties;
+                    var tempF = null;
+                    var altimeterInHg = null;
 
                     if (props.temperature && props.temperature.value !== null) {
-                        var f = (props.temperature.value * 9/5) + 32;
-                        tempEl.textContent = f.toFixed(1) + '°F';
+                        tempF = (props.temperature.value * 9/5) + 32;
+                        tempEl.textContent = tempF.toFixed(1) + '°F';
                     } else {
                         tempEl.textContent = 'N/A';
                     }
@@ -242,19 +267,44 @@
                     }
 
                     if (props.barometricPressure && props.barometricPressure.value !== null) {
-                        var inHg = props.barometricPressure.value * 0.0002953;
-                        pressEl.textContent = inHg.toFixed(2) + ' inHg';
+                        altimeterInHg = props.barometricPressure.value * 0.0002953;
+                        pressEl.textContent = altimeterInHg.toFixed(2) + ' inHg';
                     } else {
                         pressEl.textContent = 'N/A';
+                    }
+
+                    // Aviation Aerodynamic Computation Core
+                    if (tempF !== null && altimeterInHg !== null) {
+                        // Pressure Altitude calculation
+                        var pa = (29.92 - altimeterInHg) * 1000 + config.elevation;
+                        paEl.textContent = Math.round(pa).toLocaleString() + ' ft';
+
+                        // ISA Temperature at field elevation
+                        var isaTempF = 59 - (3.57 * (config.elevation / 1000));
+                        
+                        // Density Altitude calculation corrected for non-standard temperature dev
+                        var da = pa + 118.8 * (tempF - isaTempF);
+                        daEl.textContent = Math.round(da).toLocaleString() + ' ft';
+
+                        var daDelta = da - config.elevation;
+                        if (daDelta >= 0) {
+                            daDeltaEl.innerHTML = '<span class="text-red-400 font-bold text-[10px]">+' + Math.round(daDelta).toLocaleString() + ' ft over field</span>';
+                        } else {
+                            daDeltaEl.innerHTML = '<span class="text-emerald-400 font-bold text-[10px]">' + Math.round(daDelta).toLocaleString() + ' ft under field</span>';
+                        }
+                    } else {
+                        paEl.textContent = 'N/A';
+                        daEl.textContent = 'N/A';
+                        daDeltaEl.innerHTML = '<span class="text-gray-600 text-[10px]">Missing Alt Metrics</span>';
                     }
                 })
                 .catch(function(err) {
                     console.log('Observation fetch error:', err);
-                    [tempEl, windEl, humidEl, pressEl].forEach(el => el.textContent = 'Offline');
+                    [tempEl, windEl, humidEl, pressEl, paEl, daEl].forEach(el => el.textContent = 'Offline');
+                    daDeltaEl.innerHTML = '<span class="text-red-500 text-[10px]">Offline</span>';
                 });
         }
 
-        // Roland Stull equation for highly accurate Wet Bulb calculation via raw metric inputs
         function calculateWetBulb(tc, rh) {
             var tw = tc * Math.atan(0.151977 * Math.pow(rh + 8.313659, 0.5)) 
                    + Math.atan(tc + rh) 
@@ -292,12 +342,10 @@
                         hiEl.textContent = 'N/A';
                     }
 
-                    // Resilient Execution check for Western Region grid variance
                     if (currentWBGT !== null) {
                         var wbF = (currentWBGT * 9/5) + 32;
                         renderWbgtFlag(wbF, "NWS Geo-Grid");
                     } else {
-                        // Math Intercept: If WFO Boulder leaves WBGT blank, run Stull psychrometric formula via grid metrics
                         var currentTempC = getGridValueForTime(props.temperature, now);
                         var currentRH = getGridValueForTime(props.relativeHumidity, now);
 
