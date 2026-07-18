@@ -78,7 +78,7 @@
                         <span class="text-[10px] text-amber-600/70 font-mono">NWS Geo-Grid</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-red-900/30 flex flex-col justify-between min-h-[90px]">
-                        <span class="text-xs text-red-500 block font-medium">Wet Bulb Globe (WBGT)</span>
+                        <span class="text-xs text-red-500 block font-medium">Wet Bulb / WBGT</span>
                         <span id="obs-wetbulb" class="text-2xl font-bold text-red-400">--.-°F</span>
                         <div id="wbgt-flag-container">
                             <span class="text-[10px] text-gray-600 font-mono block">Pending...</span>
@@ -153,7 +153,7 @@
                 lat: 32.6405, 
                 lon: -83.5925,
                 soundingStation: 'FFC',
-                station: 'KWRB', // Swapped out 48A for military-grade ASOS line at Robins AFB
+                station: 'KWRB',
                 title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
@@ -254,6 +254,16 @@
                 });
         }
 
+        // Roland Stull equation for highly accurate Wet Bulb calculation via raw metric inputs
+        function calculateWetBulb(tc, rh) {
+            var tw = tc * Math.atan(0.151977 * Math.pow(rh + 8.313659, 0.5)) 
+                   + Math.atan(tc + rh) 
+                   - Math.atan(rh - 1.676331) 
+                   + 0.00391838 * Math.pow(rh, 1.5) * Math.atan(0.023101 * rh) 
+                   - 4.686035;
+            return (tw * 9/5) + 32;
+        }
+
         function fetchGridThermalMetrics(gridUrl) {
             var hiEl = document.getElementById('obs-heatindex');
             var wbEl = document.getElementById('obs-wetbulb');
@@ -282,12 +292,22 @@
                         hiEl.textContent = 'N/A';
                     }
 
+                    // Resilient Execution check for Western Region grid variance
                     if (currentWBGT !== null) {
                         var wbF = (currentWBGT * 9/5) + 32;
-                        renderWbgtFlag(wbF);
+                        renderWbgtFlag(wbF, "NWS Geo-Grid");
                     } else {
-                        wbEl.textContent = 'N/A';
-                        flagContainer.innerHTML = '<span class="text-[10px] text-gray-500 font-mono">N/A</span>';
+                        // Math Intercept: If WFO Boulder leaves WBGT blank, run Stull psychrometric formula via grid metrics
+                        var currentTempC = getGridValueForTime(props.temperature, now);
+                        var currentRH = getGridValueForTime(props.relativeHumidity, now);
+
+                        if (currentTempC !== null && currentRH !== null) {
+                            var computedWbF = calculateWetBulb(currentTempC, currentRH);
+                            renderWbgtFlag(computedWbF, "Stull Calc");
+                        } else {
+                            wbEl.textContent = 'N/A';
+                            flagContainer.innerHTML = '<span class="text-[10px] text-gray-500 font-mono">N/A</span>';
+                        }
                     }
                 })
                 .catch(function(err) {
@@ -302,7 +322,6 @@
             if (!propBlock || !propBlock.values || propBlock.values.length === 0) return null;
             var values = propBlock.values;
             
-            // Loop through time intervals to match active window
             for (var i = 0; i < values.length; i++) {
                 var item = values[i];
                 var timeParts = item.validTime.split('/');
@@ -321,7 +340,6 @@
                 }
             }
             
-            // Failover chronological safety catch: query nearest array point
             var closestVal = values[0].value;
             var minDiff = Infinity;
             for (var i = 0; i < values.length; i++) {
@@ -336,8 +354,7 @@
             return closestVal;
         }
 
-        // Translates WBGT data thresholds into official NWS/Military exertion flag warnings
-        function renderWbgtFlag(wbF) {
+        function renderWbgtFlag(wbF, sourceLabel) {
             var wbEl = document.getElementById('obs-wetbulb');
             var flagContainer = document.getElementById('wbgt-flag-container');
             
@@ -363,7 +380,7 @@
                 flagText = "BLACK FLAG";
             }
             
-            flagContainer.innerHTML = '<span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider inline-block ' + flagClass + '">' + flagText + '</span>';
+            flagContainer.innerHTML = '<span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider inline-block ' + flagClass + '">' + flagText + '</span><span class="text-[9px] text-gray-600 font-mono block mt-0.5">' + sourceLabel + '</span>';
         }
 
         function degToCompass(num) {
@@ -390,7 +407,6 @@
                     
                     statusEl.textContent = 'Parsing...';
                     
-                    // Concurrent execution of grid metrics and forecast array endpoints
                     fetchGridThermalMetrics(gridDataUrl);
                     return fetch(hourlyForecastUrl);
                 })
