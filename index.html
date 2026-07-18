@@ -21,12 +21,15 @@
                 <h1 class="text-xl font-bold tracking-tight">Regional Micro-Weather Console</h1>
             </div>
             
-            <div class="flex gap-2 bg-gray-950 p-1 rounded-lg border border-gray-800">
+            <div class="flex flex-wrap gap-2 bg-gray-950 p-1 rounded-lg border border-gray-800">
                 <button id="btn-ga" onclick="switchLocation('GA')" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-blue-600 text-white">
                     Central Georgia
                 </button>
                 <button id="btn-dfw" onclick="switchLocation('DFW')" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">
                     Dallas-Fort Worth
+                </button>
+                <button id="btn-arv" onclick="switchLocation('ARV')" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-gray-400 hover:text-white">
+                    Arvada, CO
                 </button>
             </div>
         </div>
@@ -38,34 +41,33 @@
         <!-- LEFT COLUMN: Ground Truth and Forecast -->
         <section class="lg:col-span-5 flex flex-col gap-6">
             
-            <!-- RESERVED SPACE: Ambient Weather WS-2902C Live Station -->
-            <div class="bg-gray-900 border border-dashed border-gray-700 rounded-xl p-5 relative overflow-hidden">
-                <div class="absolute top-0 right-0 bg-gray-800 text-gray-400 text-[10px] font-mono px-3 py-1 rounded-bl-lg border-l border-b border-gray-700">
-                    SLOT RESERVED
+            <!-- NWS Live METAR Observations (Replaces Station Placeholder) -->
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-blue-900/30 text-blue-400 text-[10px] font-mono px-3 py-1 rounded-bl-lg border-l border-b border-gray-800 tracking-wider">
+                    LIVE METAR
                 </div>
                 
-                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Live Backyard Station</h2>
-                <h3 class="text-lg font-semibold text-gray-300 mb-4">Ambient Weather WS-2902C Feed</h3>
+                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Local Ground Truth</h2>
+                <h3 id="obs-station-label" class="text-lg font-semibold text-gray-300 mb-4 font-mono">Initializing Feed...</h3>
                 
-                <div class="grid grid-cols-2 gap-4 opacity-40">
+                <div class="grid grid-cols-2 gap-4">
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs text-gray-500 block">Temperature</span>
-                        <span class="text-2xl font-bold text-gray-400">--.-°F</span>
+                        <span id="obs-temp" class="text-2xl font-bold text-emerald-400">--.-°F</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
-                        <span class="text-xs text-gray-500 block">Wind Speed</span>
-                        <span class="text-2xl font-bold text-gray-400">-- mph</span>
+                        <span class="text-xs text-gray-500 block">Wind Velocity</span>
+                        <span id="obs-wind" class="text-lg font-bold text-gray-300 font-mono">-- mph</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
-                        <span class="text-xs text-gray-500 block">Solar Radiation</span>
-                        <span class="text-2xl font-bold text-gray-400">--- W/m²</span>
+                        <span class="text-xs text-gray-500 block">Relative Humidity</span>
+                        <span id="obs-humidity" class="text-2xl font-bold text-blue-400">--%</span>
                     </div>
                     <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
-                        <span class="text-xs text-gray-500 block">Daily Rain</span>
-                        <span class="text-2xl font-bold text-gray-400">-.-- in</span>
+                        <span class="text-xs text-gray-500 block">Barometric Pressure</span>
+                        <span id="obs-pressure" class="text-lg font-bold text-orange-400 font-mono">--.-- inHg</span>
                     </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-4 italic">* Connection to local station API reserved for later build.</p>
             </div>
 
             <!-- NWS 12-Hour Micro-Forecast -->
@@ -134,6 +136,7 @@
                 lat: 33.30, 
                 lon: -84.55,
                 soundingStation: 'FFC',
+                station: 'KFFC',
                 title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
@@ -141,7 +144,16 @@
                 lat: 32.7767,
                 lon: -96.7970,
                 soundingStation: 'FWD',
+                station: 'KDAL',
                 title: 'Latest Fort Worth (FWD) Sounding'
+            },
+            ARV: {
+                name: 'Arvada, CO',
+                lat: 39.8028,
+                lon: -105.0875,
+                soundingStation: 'DNR',
+                station: 'KBJC',
+                title: 'Latest Denver (DNR) Sounding'
             }
         };
 
@@ -155,18 +167,92 @@
             currentActive = locKey;
             var config = locations[locKey];
 
-            document.getElementById('btn-ga').className = locKey === 'GA' 
-                ? 'px-4 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white transition-all'
-                : 'px-4 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all';
-            
-            document.getElementById('btn-dfw').className = locKey === 'DFW' 
-                ? 'px-4 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white transition-all'
-                : 'px-4 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all';
+            // Clean button styling transition loop
+            ['GA', 'DFW', 'ARV'].forEach(function(key) {
+                var btn = document.getElementById('btn-' + key.toLowerCase());
+                if (btn) {
+                    btn.className = key === locKey 
+                        ? 'px-4 py-1.5 rounded-md text-sm font-medium bg-blue-600 text-white transition-all'
+                        : 'px-4 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all';
+                }
+            });
 
             document.getElementById('sounding-title').textContent = config.title;
             document.getElementById('sounding-img').src = 'https://www.spc.noaa.gov/exper/soundings/LATEST/' + config.soundingStation + '.gif';
 
             fetchNWSForecast(config.lat, config.lon);
+            fetchCurrentObservations(config.station);
+        }
+
+        function fetchCurrentObservations(stationId) {
+            var tempEl = document.getElementById('obs-temp');
+            var windEl = document.getElementById('obs-wind');
+            var humidEl = document.getElementById('obs-humidity');
+            var pressEl = document.getElementById('obs-pressure');
+            document.getElementById('obs-station-label').textContent = 'Station ' + stationId + ' Data';
+
+            // Reset UI states
+            tempEl.textContent = '--.-°F';
+            windEl.textContent = '-- mph';
+            humidEl.textContent = '--%';
+            pressEl.textContent = '--.-- inHg';
+
+            fetch('https://api.weather.gov/stations/' + stationId + '/observations/latest')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Observation unavailable.');
+                    return res.json();
+                })
+                .then(function(data) {
+                    var props = data.properties;
+
+                    // Temp Conversion (C to F)
+                    if (props.temperature && props.temperature.value !== null) {
+                        var f = (props.temperature.value * 9/5) + 32;
+                        tempEl.textContent = f.toFixed(1) + '°F';
+                    } else {
+                        tempEl.textContent = 'N/A';
+                    }
+
+                    // Wind Velocity Conversion (km/h to mph + Compass Direction)
+                    if (props.windSpeed && props.windSpeed.value !== null) {
+                        var mph = props.windSpeed.value * 0.621371;
+                        var windStr = mph.toFixed(0) + ' mph';
+                        if (props.windDirection && props.windDirection.value !== null) {
+                            windStr += ' ' + degToCompass(props.windDirection.value);
+                        }
+                        windEl.textContent = windStr;
+                    } else {
+                        windEl.textContent = 'Calm';
+                    }
+
+                    // Relative Humidity
+                    if (props.relativeHumidity && props.relativeHumidity.value !== null) {
+                        humidEl.textContent = props.relativeHumidity.value.toFixed(0) + '%';
+                    } else {
+                        humidEl.textContent = 'N/A';
+                    }
+
+                    // Barometric Pressure Conversion (Pascals to inHg)
+                    if (props.barometricPressure && props.barometricPressure.value !== null) {
+                        var inHg = props.barometricPressure.value * 0.0002953;
+                        pressEl.textContent = inHg.toFixed(2) + ' inHg';
+                    } else {
+                        pressEl.textContent = 'N/A';
+                    }
+                })
+                .catch(function(err) {
+                    console.log('Observation fetch error:', err);
+                    tempEl.textContent = 'Offline';
+                    windEl.textContent = 'Offline';
+                    humidEl.textContent = 'Offline';
+                    pressEl.textContent = 'Offline';
+                });
+        }
+
+        function degToCompass(num) {
+            var val = Math.floor((num / 22.5) + 0.5);
+            var arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+            return arr[(val % 16)];
         }
 
         function fetchNWSForecast(lat, lon) {
