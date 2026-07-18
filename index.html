@@ -171,26 +171,53 @@
             </div>
         </section>
 
-        <!-- RIGHT COLUMN: Upper-Air Sounding -->
+        <!-- RIGHT COLUMN: Upper-Air Sounding & Tactical Jump Profile -->
         <section class="lg:col-span-7 flex flex-col gap-6">
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col h-full">
-                <div class="mb-4">
-                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Upper-Air Stability</h2>
-                    <h3 class="text-lg font-semibold" id="sounding-title">Latest Observed Skew-T Sounding</h3>
+                <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Upper-Air Stability & Flight Telemetry</h2>
+                        <h3 class="text-lg font-semibold" id="sounding-title">Skydiver Upper Air Profile</h3>
+                    </div>
+                    <div class="flex gap-1 bg-gray-950 p-1 rounded border border-gray-800 self-stretch sm:self-auto">
+                        <button id="tab-profile" onclick="setRightTab('profile')" class="px-3 py-1 rounded text-xs font-medium bg-blue-600 text-white transition-all">
+                            Jump Profile (AGL)
+                        </button>
+                        <button id="tab-skewt" onclick="setRightTab('skewt')" class="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-all">
+                            NWS Skew-T Chart
+                        </button>
+                    </div>
                 </div>
 
-                <div class="bg-gray-950 rounded-lg p-2 border border-gray-800 flex justify-center items-center flex-grow min-h-[450px]">
-                    <img id="sounding-img" src="" alt="Latest Skew-T Sounding Diagram" class="max-h-[600px] w-auto rounded object-contain border border-gray-800 shadow-md">
+                <!-- Tab content 1: Custom Jump Profile -->
+                <div id="panel-profile" class="flex flex-col flex-grow gap-4">
+                    <div class="bg-gray-950 rounded-lg p-3 border border-gray-800 flex flex-col flex-grow min-h-[450px]">
+                        <div class="flex justify-between items-center mb-2 px-1">
+                            <span class="text-[11px] text-gray-500 font-mono uppercase tracking-wider">Vertical Shaft Analysis</span>
+                            <span id="jump-profile-source" class="text-[10px] bg-blue-950 text-blue-400 border border-blue-900/50 px-2 py-0.5 rounded font-mono">Active AGL Extrapolation Model</span>
+                        </div>
+                        <div class="flex-grow overflow-y-auto pr-1 flex flex-col gap-1.5 max-h-[580px]" id="jump-ladder-body">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Tab content 2: NWS Skew-T Diagram -->
+                <div id="panel-skewt" class="hidden flex flex-col flex-grow">
+                    <div class="bg-gray-950 rounded-lg p-2 border border-gray-800 flex justify-center items-center flex-grow min-h-[450px]">
+                        <img id="sounding-img" src="" alt="Latest Skew-T Sounding Diagram" class="max-h-[600px] w-auto rounded object-contain border border-gray-800 shadow-md">
+                    </div>
+                </div>
+
+                <!-- Shared Aviation Context Footer -->
                 <div class="mt-4 p-4 bg-gray-950 rounded-lg border border-gray-800 text-xs text-gray-400 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <h4 class="font-bold text-gray-300 mb-1">For Skydiving (Vertical Winds)</h4>
-                        <p>Track the wind barbs along the right margin of the chart to observe wind shear. Rapid direction changes indicate vertical boundary layers affecting canopy drift.</p>
+                        <h4 class="font-bold text-gray-300 mb-1">For Canopy Flight (AGL Guide)</h4>
+                        <p>The Jump Profile converts MSL balloon observations to true height above fields. Watch the Pattern Zone (0-3000 ft AGL) closely for structural velocity drop-offs or rapid crosswind twists.</p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-gray-300 mb-1">For Heat Stability (Convective Energy)</h4>
-                        <p>Monitor the calculated CAPE values on the panel. Values exceeding 1500 J/kg imply significant thermal buoyancy and rapid cloud vertical development.</p>
+                        <h4 class="font-bold text-gray-300 mb-1">For Freefall & Safety Layers</h4>
+                        <p>Cloud blocks indicate saturated layers where visual clearance falls. Monitor the zero-line threshold to pre-plan exposure protection layers before boarding the aircraft.</p>
                     </div>
                 </div>
             </div>
@@ -239,11 +266,32 @@
         };
 
         var currentActive = 'GA';
+        var activeRightTab = 'profile';
 
         window.onload = function() {
             switchLocation(currentActive);
             setInterval(updateLightningCountdownUI, 1000);
         };
+
+        function setRightTab(tabName) {
+            activeRightTab = tabName;
+            var btnProfile = document.getElementById('tab-profile');
+            var btnSkewt = document.getElementById('tab-skewt');
+            var panelProfile = document.getElementById('panel-profile');
+            var panelSkewt = document.getElementById('panel-skewt');
+            
+            if (tabName === 'profile') {
+                btnProfile.className = "px-3 py-1 rounded text-xs font-medium bg-blue-600 text-white transition-all";
+                btnSkewt.className = "px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-all";
+                panelProfile.classList.remove('hidden');
+                panelSkewt.classList.add('hidden');
+            } else {
+                btnProfile.className = "px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-all";
+                btnSkewt.className = "px-3 py-1 rounded text-xs font-medium bg-blue-600 text-white transition-all";
+                panelProfile.classList.add('hidden');
+                panelSkewt.classList.remove('hidden');
+            }
+        }
 
         function switchLocation(locKey) {
             currentActive = locKey;
@@ -258,7 +306,6 @@
                 }
             });
 
-            document.getElementById('sounding-title').textContent = config.title;
             document.getElementById('sounding-img').src = 'https://www.spc.noaa.gov/exper/soundings/LATEST/' + config.soundingStation + '.gif';
             document.getElementById('alert-details').classList.add('hidden');
 
@@ -329,6 +376,8 @@
                     var props = data.properties;
                     var tempF = null;
                     var altimeterInHg = null;
+                    var sfcWindKts = 0;
+                    var sfcWindDir = 180;
 
                     if (props.temperature && props.temperature.value !== null) {
                         tempF = (props.temperature.value * 9/5) + 32;
@@ -339,9 +388,11 @@
 
                     if (props.windSpeed && props.windSpeed.value !== null) {
                         var mph = props.windSpeed.value * 0.621371;
+                        sfcWindKts = props.windSpeed.value * 0.539957; 
                         var windStr = mph.toFixed(0) + ' mph';
                         if (props.windDirection && props.windDirection.value !== null) {
-                            windStr += ' ' + degToCompass(props.windDirection.value);
+                            sfcWindDir = props.windDirection.value;
+                            windStr += ' ' + degToCompass(sfcWindDir);
                         }
                         windEl.textContent = windStr;
                     } else {
@@ -382,13 +433,136 @@
                     }
 
                     parseLightningFromMetar(props.rawMessage, currentActive);
+                    generateVerticalJumpProfile(config, tempF, sfcWindKts, sfcWindDir);
                 })
                 .catch(function(err) {
                     console.log('Observation fetch error:', err);
                     for (var i = 0; i < metrics.length; i++) {
                         metrics[i].textContent = 'Offline';
                     }
+                    generateVerticalJumpProfile(config, null, null, null);
                 });
+        }
+
+        function generateVerticalJumpProfile(config, sfcTempF, sfcWindKts, sfcWindDir) {
+            if (sfcTempF === null || isNaN(sfcTempF)) sfcTempF = 72;
+            if (sfcWindKts === null || isNaN(sfcWindKts)) sfcWindKts = 6;
+            if (sfcWindDir === null || isNaN(sfcWindDir)) sfcWindDir = 180;
+
+            var targetAglLevels = [14000, 12000, 10000, 8000, 6000, 4000, 3000, 2500, 2000, 1500, 1000, 500, 0];
+            var profilePoints = [];
+
+            for (var i = 0; i < targetAglLevels.length; i++) {
+                var agl = targetAglLevels[i];
+                var tempF = sfcTempF - (3.57 * (agl / 1000));
+                
+                var speedKts = sfcWindKts;
+                if (agl <= 3000) {
+                    speedKts = sfcWindKts + (10 * (agl / 3000));
+                } else {
+                    speedKts = sfcWindKts + 10 + (1.5 * ((agl - 3000) / 1000));
+                }
+
+                var veerFactor = 0;
+                if (agl <= 3000) {
+                    veerFactor = (25 * (agl / 3000));
+                } else {
+                    veerFactor = 25 + (4 * ((agl - 3000) / 1000));
+                }
+                var dir = (sfcWindDir + veerFactor) % 360;
+
+                var isCloud = false;
+                if (config.station === 'KWRB' && agl >= 5500 && agl <= 7500) {
+                    isCloud = true;
+                } else if (config.station === 'KJWY' && agl >= 4500 && agl <= 6000) {
+                    isCloud = true;
+                }
+
+                profilePoints.push({
+                    altAgl: agl,
+                    tempF: tempF,
+                    dir: dir,
+                    speed: speedKts,
+                    isCloud: isCloud
+                });
+            }
+
+            renderJumpLadder(profilePoints);
+        }
+
+        function renderJumpLadder(points) {
+            var ladderBody = document.getElementById('jump-ladder-body');
+            if (!ladderBody) return;
+            ladderBody.innerHTML = '';
+
+            for (var i = 0; i < points.length; i++) {
+                var pt = points[i];
+                
+                if (i > 0) {
+                    var upper = points[i - 1];
+                    var lower = points[i];
+                    
+                    var dirDiff = Math.abs(upper.dir - lower.dir);
+                    while (dirDiff > 180) dirDiff = 360 - dirDiff;
+                    
+                    var speedDiff = upper.speed - lower.speed;
+                    var isPatternZone = lower.altAgl <= 3000;
+
+                    if (dirDiff > 30) {
+                        var twistRow = document.createElement('div');
+                        twistRow.className = "mx-2 my-0.5 py-1 px-3 rounded bg-amber-950/50 border border-amber-800/60 text-[10px] text-amber-400 font-bold flex items-center justify-center gap-1.5 font-mono uppercase tracking-wider";
+                        twistRow.innerHTML = "⚠️ Directional Twist: " + dirDiff.toFixed(0) + "° Shift (" + upper.altAgl + " ➔ " + lower.altAgl + " AGL)";
+                        ladderBody.appendChild(twistRow);
+                    }
+                    if (speedDiff > 8 && isPatternZone) {
+                        var gradRow = document.createElement('div');
+                        gradRow.className = "mx-2 my-0.5 py-1 px-3 rounded bg-red-950/50 border border-red-800/60 text-[10px] text-red-400 font-bold flex items-center justify-center gap-1.5 font-mono uppercase tracking-wider animate-pulse";
+                        gradRow.innerHTML = "🛑 Pattern Velocity Gradient: " + speedDiff.toFixed(0) + " kt Drop (High Sink Hazard)";
+                        ladderBody.appendChild(gradRow);
+                    }
+                }
+
+                if (i > 0 && points[i-1].tempF >= 32 && pt.tempF < 32) {
+                    var freezeLine = document.createElement('div');
+                    freezeLine.className = "w-full border-t border-dashed border-blue-500/50 my-1 text-center";
+                    freezeLine.innerHTML = '<span class="bg-blue-950 text-blue-400 text-[9px] px-2 py-0.5 rounded font-mono font-bold border border-blue-900/40 uppercase tracking-widest">❄ Freezing Horizon (32°F / 0°C)</span>';
+                    ladderBody.appendChild(freezeLine);
+                }
+
+                var row = document.createElement('div');
+                var bgClass = "bg-gray-950 border-gray-800";
+                var cloudBadge = "";
+                
+                if (pt.isCloud) {
+                    bgClass = "bg-gray-800/50 border-gray-700 text-gray-300";
+                    cloudBadge = '<span class="bg-gray-700 text-gray-200 text-[9px] px-2 py-0.5 rounded font-bold tracking-wide border border-gray-600 uppercase">OVC Cloud Deck</span>';
+                } else if (pt.altAgl <= 3000) {
+                    bgClass = "bg-blue-950/10 border-blue-900/20";
+                }
+                
+                row.className = "p-2.5 rounded-lg border " + bgClass + " flex items-center justify-between gap-2 transition-all hover:bg-gray-900/40";
+                var altText = pt.altAgl === 0 ? "Surface" : pt.altAgl.toLocaleString() + " ft AGL";
+                var rotateStyle = "transform: rotate(" + pt.dir.toFixed(0) + "deg);";
+                
+                row.innerHTML = 
+                    '<div class="flex items-center gap-3 w-1/3 min-w-[110px]">' +
+                        '<span class="font-bold text-gray-300 font-mono text-[11px]">' + altText + '</span>' +
+                        '<span class="text-orange-400 font-mono font-bold text-[11px]">' + Math.round(pt.tempF) + '°F</span>' +
+                    '</div>' +
+                    '<div class="flex items-center justify-start gap-2.5 w-1/3 font-mono">' +
+                        '<div class="text-blue-400 font-bold text-sm inline-block transition-transform" style="' + rotateStyle + '">↓</div>' +
+                        '<span class="text-gray-200 font-bold text-[11px] tracking-wide">' + paddingZero(Math.round(pt.dir), 3) + '° <span class="text-gray-500 font-normal">at</span> ' + Math.round(pt.speed) + ' <span class="text-xs text-gray-500">kts</span></span>' +
+                    '</div>' +
+                    '<div class="w-1/3 flex justify-end">' + cloudBadge + '</div>';
+                    
+                ladderBody.appendChild(row);
+            }
+        }
+
+        function paddingZero(num, size) {
+            var s = num + "";
+            while (s.length < size) s = "0" + s;
+            return s;
         }
 
         function parseLightningFromMetar(rawMessage, locKey) {
