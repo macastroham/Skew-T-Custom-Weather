@@ -41,40 +41,48 @@
         <!-- LEFT COLUMN: Ground Truth and Forecast -->
         <section class="lg:col-span-5 flex flex-col gap-6">
             
-            <!-- Optimized Real-Time Weather Station Grid -->
+            <!-- Optimized Weather Station & Resilient Geospatial Thermal Grid -->
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
                 <div class="absolute top-0 right-0 bg-blue-900/30 text-blue-400 text-[10px] font-mono px-3 py-1 rounded-bl-lg border-l border-b border-gray-800 tracking-wider">
-                    LIVE METAR
+                    LIVE DATA
                 </div>
                 
                 <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Local Ground Truth</h2>
                 <h3 id="obs-station-label" class="text-lg font-semibold text-gray-300 mb-4 font-mono">Initializing Feed...</h3>
                 
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Temperature</span>
                         <span id="obs-temp" class="text-2xl font-bold text-emerald-400">--.-°F</span>
+                        <span class="text-[10px] text-gray-600 font-mono">Air Sensor</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Wind Velocity</span>
                         <span id="obs-wind" class="text-base font-bold text-gray-300 font-mono">-- mph</span>
+                        <span class="text-[10px] text-gray-600 font-mono">Surface</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Relative Humidity</span>
                         <span id="obs-humidity" class="text-2xl font-bold text-blue-400">--%</span>
+                        <span class="text-[10px] text-gray-600 font-mono">Moisture</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-gray-500 block">Barometric Pressure</span>
                         <span id="obs-pressure" class="text-base font-bold text-orange-400 font-mono">--.-- inHg</span>
+                        <span class="text-[10px] text-gray-600 font-mono">Altimeter</span>
                     </div>
-                    <!-- Thermal Comfort Additions -->
-                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-amber-900/40">
+                    <!-- Thermal Comfort: Powered Safely by NWS Geospatial Grid Arrays -->
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-amber-900/30 flex flex-col justify-between min-h-[90px]">
                         <span class="text-xs text-amber-500 block font-medium">Heat Index</span>
                         <span id="obs-heatindex" class="text-2xl font-bold text-amber-400">--.-°F</span>
+                        <span class="text-[10px] text-amber-600/70 font-mono">NWS Geo-Grid</span>
                     </div>
-                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-red-900/40">
-                        <span class="text-xs text-red-500 block font-medium">Wet Bulb Temp</span>
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 border-red-900/30 flex flex-col justify-between min-h-[90px]">
+                        <span class="text-xs text-red-500 block font-medium">Wet Bulb Globe (WBGT)</span>
                         <span id="obs-wetbulb" class="text-2xl font-bold text-red-400">--.-°F</span>
+                        <div id="wbgt-flag-container">
+                            <span class="text-[10px] text-gray-600 font-mono block">Pending...</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -142,10 +150,10 @@
         var locations = {
             GA: {
                 name: 'Central Georgia',
-                lat: 32.5183, 
-                lon: -83.7716,
+                lat: 32.6405, 
+                lon: -83.5925,
                 soundingStation: 'FFC',
-                station: '48A',
+                station: 'KWRB', // Swapped out 48A for military-grade ASOS line at Robins AFB
                 title: 'Latest Atlanta/Peachtree City (FFC) Sounding'
             },
             DFW: {
@@ -192,27 +200,14 @@
             fetchCurrentObservations(config.station);
         }
 
-        // Roland Stull equation for highly accurate Wet Bulb calculation via raw metric inputs
-        function calculateWetBulb(tc, rh) {
-            var tw = tc * Math.atan(0.151977 * Math.pow(rh + 8.313659, 0.5)) 
-                   + Math.atan(tc + rh) 
-                   - Math.atan(rh - 1.676331) 
-                   + 0.00391838 * Math.pow(rh, 1.5) * Math.atan(0.023101 * rh) 
-                   - 4.686035;
-            return (tw * 9/5) + 32;
-        }
-
         function fetchCurrentObservations(stationId) {
             var tempEl = document.getElementById('obs-temp');
             var windEl = document.getElementById('obs-wind');
             var humidEl = document.getElementById('obs-humidity');
             var pressEl = document.getElementById('obs-pressure');
-            var hiEl = document.getElementById('obs-heatindex');
-            var wbEl = document.getElementById('obs-wetbulb');
             
             document.getElementById('obs-station-label').textContent = 'Station ' + stationId + ' Data';
-
-            [tempEl, windEl, humidEl, pressEl, hiEl, wbEl].forEach(el => el.textContent = '--');
+            [tempEl, windEl, humidEl, pressEl].forEach(el => el.textContent = '--');
 
             fetch('https://api.weather.gov/stations/' + stationId + '/observations/latest')
                 .then(function(res) {
@@ -221,19 +216,14 @@
                 })
                 .then(function(data) {
                     var props = data.properties;
-                    var tc = null;
-                    var rh = null;
 
-                    // Temperature Processing
                     if (props.temperature && props.temperature.value !== null) {
-                        tc = props.temperature.value;
-                        var f = (tc * 9/5) + 32;
+                        var f = (props.temperature.value * 9/5) + 32;
                         tempEl.textContent = f.toFixed(1) + '°F';
                     } else {
                         tempEl.textContent = 'N/A';
                     }
 
-                    // Wind Processing
                     if (props.windSpeed && props.windSpeed.value !== null) {
                         var mph = props.windSpeed.value * 0.621371;
                         var windStr = mph.toFixed(0) + ' mph';
@@ -245,45 +235,135 @@
                         windEl.textContent = 'Calm';
                     }
 
-                    // Humidity Processing
                     if (props.relativeHumidity && props.relativeHumidity.value !== null) {
-                        rh = props.relativeHumidity.value;
-                        humidEl.textContent = rh.toFixed(0) + '%';
+                        humidEl.textContent = props.relativeHumidity.value.toFixed(0) + '%';
                     } else {
                         humidEl.textContent = 'N/A';
                     }
 
-                    // Pressure Processing
                     if (props.barometricPressure && props.barometricPressure.value !== null) {
                         var inHg = props.barometricPressure.value * 0.0002953;
                         pressEl.textContent = inHg.toFixed(2) + ' inHg';
                     } else {
                         pressEl.textContent = 'N/A';
                     }
+                })
+                .catch(function(err) {
+                    console.log('Observation fetch error:', err);
+                    [tempEl, windEl, humidEl, pressEl].forEach(el => el.textContent = 'Offline');
+                });
+        }
 
-                    // Real-Time Native Heat Index Parsing
-                    if (props.heatIndex && props.heatIndex.value !== null) {
-                        var hiF = (props.heatIndex.value * 9/5) + 32;
+        function fetchGridThermalMetrics(gridUrl) {
+            var hiEl = document.getElementById('obs-heatindex');
+            var wbEl = document.getElementById('obs-wetbulb');
+            var flagContainer = document.getElementById('wbgt-flag-container');
+
+            hiEl.textContent = '...';
+            wbEl.textContent = '...';
+            flagContainer.innerHTML = '<span class="text-[10px] text-gray-500 font-mono">Syncing...</span>';
+
+            fetch(gridUrl)
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Grid down.');
+                    return res.json();
+                })
+                .then(function(data) {
+                    var props = data.properties;
+                    var now = new Date();
+
+                    var currentHI = getGridValueForTime(props.apparentTemperature, now);
+                    var currentWBGT = getGridValueForTime(props.wetBulbGlobeTemperature, now);
+
+                    if (currentHI !== null) {
+                        var hiF = (currentHI * 9/5) + 32;
                         hiEl.textContent = hiF.toFixed(1) + '°F';
-                    } else if (tc !== null) {
-                        var currentF = (tc * 9/5) + 32;
-                        hiEl.textContent = currentF > 80 ? 'Calculating...' : 'Normal';
                     } else {
                         hiEl.textContent = 'N/A';
                     }
 
-                    // Real-Time Wet Bulb Execution
-                    if (tc !== null && rh !== null) {
-                        var calculatedWB = calculateWetBulb(tc, rh);
-                        wbEl.textContent = calculatedWB.toFixed(1) + '°F';
+                    if (currentWBGT !== null) {
+                        var wbF = (currentWBGT * 9/5) + 32;
+                        renderWbgtFlag(wbF);
                     } else {
                         wbEl.textContent = 'N/A';
+                        flagContainer.innerHTML = '<span class="text-[10px] text-gray-500 font-mono">N/A</span>';
                     }
                 })
                 .catch(function(err) {
-                    console.log('Observation fetch error:', err);
-                    [tempEl, windEl, humidEl, pressEl, hiEl, wbEl].forEach(el => el.textContent = 'Offline');
+                    console.log('Grid thermal fetch error:', err);
+                    hiEl.textContent = 'Offline';
+                    wbEl.textContent = 'Offline';
+                    flagContainer.innerHTML = '<span class="text-[10px] text-red-500 font-mono">Offline</span>';
                 });
+        }
+
+        function getGridValueForTime(propBlock, targetDate) {
+            if (!propBlock || !propBlock.values || propBlock.values.length === 0) return null;
+            var values = propBlock.values;
+            
+            // Loop through time intervals to match active window
+            for (var i = 0; i < values.length; i++) {
+                var item = values[i];
+                var timeParts = item.validTime.split('/');
+                var startTime = new Date(timeParts[0]);
+                
+                var durationHours = 1;
+                if (timeParts[1] && timeParts[1].includes('H')) {
+                    durationHours = parseInt(timeParts[1].replace(/\D/g, '')) || 1;
+                } else if (timeParts[1] && timeParts[1].includes('D')) {
+                    durationHours = (parseInt(timeParts[1].replace(/\D/g, '')) || 1) * 24;
+                }
+                var endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
+
+                if (targetDate >= startTime && targetDate < endTime) {
+                    return item.value;
+                }
+            }
+            
+            // Failover chronological safety catch: query nearest array point
+            var closestVal = values[0].value;
+            var minDiff = Infinity;
+            for (var i = 0; i < values.length; i++) {
+                var item = values[i];
+                var startTime = new Date(item.validTime.split('/')[0]);
+                var diff = Math.abs(targetDate - startTime);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestVal = item.value;
+                }
+            }
+            return closestVal;
+        }
+
+        // Translates WBGT data thresholds into official NWS/Military exertion flag warnings
+        function renderWbgtFlag(wbF) {
+            var wbEl = document.getElementById('obs-wetbulb');
+            var flagContainer = document.getElementById('wbgt-flag-container');
+            
+            wbEl.textContent = wbF.toFixed(1) + '°F';
+            
+            var flagClass = "";
+            var flagText = "";
+            
+            if (wbF < 80.0) {
+                flagClass = "bg-white text-gray-900 border border-gray-300";
+                flagText = "WHITE FLAG";
+            } else if (wbF >= 80.0 && wbF < 85.0) {
+                flagClass = "bg-emerald-600 text-white";
+                flagText = "GREEN FLAG";
+            } else if (wbF >= 85.0 && wbF < 88.0) {
+                flagClass = "bg-yellow-400 text-gray-900";
+                flagText = "YELLOW FLAG";
+            } else if (wbF >= 88.0 && wbF < 90.0) {
+                flagClass = "bg-red-600 text-white";
+                flagText = "RED FLAG";
+            } else {
+                flagClass = "bg-black text-red-500 border border-red-600 animate-pulse";
+                flagText = "BLACK FLAG";
+            }
+            
+            flagContainer.innerHTML = '<span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider inline-block ' + flagClass + '">' + flagText + '</span>';
         }
 
         function degToCompass(num) {
@@ -306,7 +386,12 @@
                 })
                 .then(function(pointsData) {
                     var hourlyForecastUrl = pointsData.properties.forecastHourly;
+                    var gridDataUrl = pointsData.properties.forecastGridData;
+                    
                     statusEl.textContent = 'Parsing...';
+                    
+                    // Concurrent execution of grid metrics and forecast array endpoints
+                    fetchGridThermalMetrics(gridDataUrl);
                     return fetch(hourlyForecastUrl);
                 })
                 .then(function(res) {
