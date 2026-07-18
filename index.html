@@ -49,7 +49,7 @@
                 <span class="text-xs underline bg-black/20 px-2 py-1 rounded font-mono font-medium">Toggle Details</span>
             </div>
             <div id="alert-details" class="hidden mt-2 pt-3 border-t border-white/20 text-xs sm:text-sm font-mono leading-relaxed max-h-[250px] overflow-y-auto whitespace-pre-wrap bg-black/30 p-3 rounded-lg">
-                <!-- Detailed NWS text map coordinates dump -->
+                <!-- Detailed NWS briefing text dump -->
             </div>
         </div>
     </div>
@@ -60,7 +60,7 @@
         <!-- LEFT COLUMN: Ground Truth and Forecast -->
         <section class="lg:col-span-5 flex flex-col gap-6">
             
-            <!-- Optimized Weather Station & Integrated Aviation Performance Array -->
+            <!-- Weather Station & Integrated Aviation Performance Array -->
             <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 relative overflow-hidden">
                 <div class="absolute top-0 right-0 bg-blue-900/30 text-blue-400 text-[10px] font-mono px-3 py-1 rounded-bl-lg border-l border-b border-gray-800 tracking-wider">
                     LIVE DATA
@@ -121,7 +121,7 @@
                     </div>
                 </div>
 
-                <!-- Strategic Tactical Convective Warning Block -->
+                <!-- Strategic Convective Tracking Block -->
                 <div id="lightning-card" class="mt-4 bg-gray-950 p-4 rounded-lg border border-gray-800 flex items-center justify-between transition-all duration-300">
                     <div class="flex items-center gap-3">
                         <div id="lightning-icon-box" class="p-2.5 rounded-lg bg-gray-900 text-gray-600">
@@ -232,18 +232,16 @@
             }
         };
 
-        // State Machine to handle independent lightning tracking arrays
-        let lightningMemory = {
+        var lightningMemory = {
             GA: { lastTimestamp: null, range: '', type: '' },
             DFW: { lastTimestamp: null, range: '', type: '' },
             ARV: { lastTimestamp: null, range: '', type: '' }
         };
 
-        let currentActive = 'GA';
+        var currentActive = 'GA';
 
         window.onload = function() {
             switchLocation(currentActive);
-            // Run high-precision UI refresh loop for safety countdowns
             setInterval(updateLightningCountdownUI, 1000);
         };
 
@@ -262,8 +260,6 @@
 
             document.getElementById('sounding-title').textContent = config.title;
             document.getElementById('sounding-img').src = 'https://www.spc.noaa.gov/exper/soundings/LATEST/' + config.soundingStation + '.gif';
-
-            // Collapse details pane upon switching regional cards
             document.getElementById('alert-details').classList.add('hidden');
 
             fetchNWSForecast(config.lat, config.lon);
@@ -279,18 +275,18 @@
             var detailsEl = document.getElementById('alert-details');
 
             fetch('https://api.weather.gov/alerts/active?point=' + lat + ',' + lon)
-                .then(res => res.json())
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data.features && data.features.length > 0) {
-                        // Sort priorities: look for direct warnings first
-                        var primaryAlert = data.features.find(f => f.properties.severity === 'Extreme' || f.properties.severity === 'Severe') || data.features[0];
-                        var props = primaryAlert.properties;
+                        var primaryAlert = data.features.find(function(f) {
+                            return f.properties.severity === 'Extreme' || f.properties.severity === 'Severe';
+                        }) || data.features[0];
                         
+                        var props = primaryAlert.properties;
                         zoneEl.classList.remove('hidden');
                         titleEl.textContent = props.event;
-                        detailsEl.textContent = props.description || "No specific briefing text supplied by weather office.";
+                        detailsEl.textContent = props.description || "No briefing text supplied by local forecasting office.";
 
-                        // Tactical color-coding assignment
                         if (props.severity === 'Extreme' || props.severity === 'Severe' || props.event.toLowerCase().includes('warning')) {
                             bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-red-950 border-red-700 text-red-200 hover:bg-red-900";
                         } else {
@@ -300,7 +296,7 @@
                         zoneEl.classList.add('hidden');
                     }
                 })
-                .catch(err => {
+                .catch(function(err) {
                     console.log('Alert extraction error:', err);
                     zoneEl.classList.add('hidden');
                 });
@@ -321,11 +317,15 @@
             var daDeltaEl = document.getElementById('obs-da-delta');
             
             document.getElementById('obs-station-label').textContent = 'Station ' + stationId + ' Data';
-            [tempEl, windEl, humidEl, pressEl, paEl, daEl].forEach(el => el.textContent = '--');
+            
+            var metrics = [tempEl, windEl, humidEl, pressEl, paEl, daEl];
+            for (var i = 0; i < metrics.length; i++) {
+                metrics[i].textContent = '--';
+            }
 
             fetch('https://api.weather.gov/stations/' + stationId + '/observations/latest')
-                .then(res => res.json())
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     var props = data.properties;
                     var tempF = null;
                     var altimeterInHg = null;
@@ -361,7 +361,6 @@
                         pressEl.textContent = 'N/A';
                     }
 
-                    // Aviation Aerodynamic Computation Core
                     if (tempF !== null && altimeterInHg !== null) {
                         var pa = (29.92 - altimeterInHg) * 1000 + config.elevation;
                         paEl.textContent = Math.round(pa).toLocaleString() + ' ft';
@@ -382,12 +381,13 @@
                         daDeltaEl.innerHTML = '<span class="text-gray-600 text-[10px]">Missing Alt Metrics</span>';
                     }
 
-                    // Extract and parse raw aviation METAR strings for electrostatic activity
                     parseLightningFromMetar(props.rawMessage, currentActive);
                 })
-                .catch(err => {
+                .catch(function(err) {
                     console.log('Observation fetch error:', err);
-                    [tempEl, windEl, humidEl, pressEl, paEl, daEl].forEach(el => el.textContent = 'Offline');
+                    for (var i = 0; i < metrics.length; i++) {
+                        metrics[i].textContent = 'Offline';
+                    }
                 });
         }
 
@@ -396,7 +396,6 @@
             var text = rawMessage.toUpperCase();
             var now = new Date().getTime();
 
-            // Match structural boundary conditions for aviation weather codes
             var hasDirectTS = /\bTS\b/.test(text) || text.includes("TSRA") || text.includes("TSGR") || text.includes("TSBR");
             var hasVicinityTS = text.includes("VCTS");
             var hasDistantLtg = text.includes("LTG DSNT") || text.includes("DSNT LTG") || text.includes("DSNT TS");
@@ -431,7 +430,7 @@
 
             var now = new Date().getTime();
             var diffSeconds = Math.floor((now - state.lastTimestamp) / 1000);
-            var totalWindow = 15 * 60; // 15 Minute standard safety hold down
+            var totalWindow = 15 * 60; 
             var remaining = totalWindow - diffSeconds;
 
             if (remaining > 0) {
@@ -462,7 +461,6 @@
                     timerEl.className = "text-xs font-mono font-bold text-yellow-500 block";
                 }
             } else {
-                // Clear state memory safely when crossing past 15 min threshold
                 lightningMemory[currentActive] = { lastTimestamp: null, range: '', type: '' };
             }
         }
@@ -486,11 +484,8 @@
             flagContainer.innerHTML = '<span class="text-[10px] text-gray-500 font-mono">Syncing...</span>';
 
             fetch(gridUrl)
-                .then(res => {
-                    if (!res.ok) throw new Error('Grid down.');
-                    return res.json();
-                })
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     var props = data.properties;
                     var now = new Date();
 
@@ -520,7 +515,7 @@
                         }
                     }
                 })
-                .catch(err => {
+                .catch(function(err) {
                     console.log('Grid thermal fetch error:', err);
                     hiEl.textContent = 'Offline';
                     wbEl.textContent = 'Offline';
@@ -607,11 +602,11 @@
             tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-sm text-gray-500">Locating grid coordinates...</td></tr>';
 
             fetch('https://api.weather.gov/points/' + lat + ',' + lon)
-                .then(res => {
+                .then(function(res) {
                     if (!res.ok) throw new Error('Grid resolution failed.');
                     return res.json();
                 })
-                .then(pointsData) {
+                .then(function(pointsData) {
                     var hourlyForecastUrl = pointsData.properties.forecastHourly;
                     var gridDataUrl = pointsData.properties.forecastGridData;
                     
@@ -620,15 +615,15 @@
                     fetchGridThermalMetrics(gridDataUrl);
                     return fetch(hourlyForecastUrl);
                 })
-                .then(res => {
+                .then(function(res) {
                     if (!res.ok) throw new Error('Hourly data denied.');
                     return res.json();
                 })
-                .then(forecastData) {
+                .then(function(forecastData) {
                     statusEl.textContent = 'Data Active';
                     renderForecast(forecastData.properties.periods);
                 })
-                .catch(error => {
+                .catch(function(error) {
                     statusEl.textContent = 'Offline';
                     tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-sm text-red-400">NWS Endpoint Error: ' + error.message + '</td></tr>';
                 });
@@ -640,7 +635,7 @@
 
             var next12Hours = periods.slice(0, 12);
 
-            next12Hours.forEach(period => {
+            next12Hours.forEach(function(period) {
                 var time = new Date(period.startTime).toLocaleTimeString([], { hour: 'numeric', hour12: true });
                 var temp = period.temperature + '°' + period.temperatureUnit;
                 var wind = period.windSpeed + ' ' + period.windDirection;
