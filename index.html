@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Regional Micro-Weather Console</title>
+    
+    <!-- PWA Meta Capabilities -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111827">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -125,7 +133,6 @@
                 <div id="lightning-card" class="mt-4 bg-gray-950 p-4 rounded-lg border border-gray-800 flex items-center justify-between transition-all duration-300">
                     <div class="flex items-center gap-3">
                         <div id="lightning-icon-box" class="p-2.5 rounded-lg bg-gray-900 text-gray-600">
-                            <!-- SVG Lightning Vector -->
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 fill-current" viewBox="0 0 24 24">
                                 <path d="M19 11h-6V3l-7 10h6v8l7-10z"/>
                             </svg>
@@ -228,6 +235,7 @@
         Data pipelines interface directly with NOAA Storm Prediction Center directories and public NWS grid endpoints.
     </footer>
 
+    <!-- Scripts and Local Logic Framework -->
     <script>
         var locations = {
             GA: {
@@ -335,9 +343,9 @@
                         detailsEl.textContent = props.description || "No briefing text supplied by local forecasting office.";
 
                         if (props.severity === 'Extreme' || props.severity === 'Severe' || props.event.toLowerCase().includes('warning')) {
-                            bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-red-950 border-red-700 text-red-200 hover:bg-red-900";
+                            bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-red-955 border-red-700 text-red-200 hover:bg-red-900";
                         } else {
-                            bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-amber-950 border-amber-700 text-amber-200 hover:bg-amber-900";
+                            bannerEl.className = "cursor-pointer p-4 rounded-xl border flex flex-col gap-2 transition-all shadow-lg bg-amber-955 border-amber-700 text-amber-200 hover:bg-amber-900";
                         }
                     } else {
                         zoneEl.classList.add('hidden');
@@ -616,13 +624,13 @@
                 rangeEl.textContent = "Radius: " + state.range;
 
                 if (state.type === 'CRITICAL STRIKE') {
-                    card.className = "mt-4 bg-red-950/40 p-4 rounded-lg border border-red-700 flex items-center justify-between transition-all duration-300 animate-pulse";
+                    card.className = "mt-4 bg-red-95/40 p-4 rounded-lg border border-red-700 flex items-center justify-between transition-all duration-300 animate-pulse";
                     iconBox.className = "p-2.5 rounded-lg bg-red-900 text-amber-400";
                     statusEl.textContent = state.type;
                     statusEl.className = "text-sm font-bold text-red-400 font-mono";
                     timerEl.className = "text-xs font-mono font-bold text-red-400 block";
                 } else if (state.type === 'VICINITY ACTIVITY') {
-                    card.className = "mt-4 bg-amber-950/30 p-4 rounded-lg border border-amber-700 flex items-center justify-between transition-all duration-300";
+                    card.className = "mt-4 bg-amber-95/30 p-4 rounded-lg border border-amber-700 flex items-center justify-between transition-all duration-300";
                     iconBox.className = "p-2.5 rounded-lg bg-amber-900 text-amber-300";
                     statusEl.textContent = state.type;
                     statusEl.className = "text-sm font-bold text-amber-400 font-mono";
@@ -828,6 +836,17 @@
                     '<td class="py-3 text-xs text-blue-400 text-right">' + precip + '</td>';
                 
                 tbody.appendChild(row);
+            });
+        }
+    </script>
+
+    <!-- Automated PWA Deployment Handshake -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function(reg) { console.log('ServiceWorker tracking active. Scope: ', reg.scope); })
+                    .catch(function(err) { console.log('ServiceWorker enrollment failed: ', err); });
             });
         }
     </script>
